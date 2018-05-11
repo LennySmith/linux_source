@@ -23,7 +23,17 @@ I used the instructions on this page to see if I could connect:
 
 [Getting Started](http://tediousjs.github.io/tedious/getting-started.html)
 
-I created a file called create_script.js to get started and see what I could pull out of the DB.
+I ended up creating several files that do different things:
+
+1. create_general_project_dates_script.js - Retrieves the dates from the [T - Project Info: General] table
+and puts them into the file insert_general_project_dates_script.js
+1. create_general_project_flags_script.js - Retrieves the bit columns from the [T - Project Info: General] table
+and puts them into the file insert_general_project_flags_script.js
+1. create_general_projects_script.js - Retrieves the dates from the [T - Project Info: General] table and
+puts them into the file insert_general_projects_script.js
+1. create_merge_script.js - Retrieves the data from DATALIB7R.F0006 on the AS400, and puts it into the file
+merge_script.js. That script will update the generalProjects collection with lat / long information from the
+AS400.
 
 # Creating The Data
 
@@ -37,11 +47,11 @@ There are 3 scripts that the data. The first is `create_general_projects_script.
 That one gets the general project information that isn't dates or flags. The
 next 2 are named appropriately for either dates or flags.
 
-These create 3 scripts which can be run in MongoDB using its `load()` function:
+Running these create scripts in Node in turn creates these 3 scripts which can be run in MongoDB using its `load()` function:
 
-    insert_general_projects_script.js
-    insert_general_project_dates_script.js
-    insert_general_project_flags_script.js
+1. insert_general_projects_script.js
+1. insert_general_project_dates_script.js
+1. insert_general_project_flags_script.js
 
 Lastly, there is `merge_script.js`, which gets that lat long values from the AS400,
 and fills in the lat long values where it can in the `generalProjects` collection.
@@ -71,31 +81,37 @@ from within the mongo shell. This takes a while to run. This ran OK, as I got a 
 The scripts above don't need to be run in a certain order, but I recommend to do
 it this way:
 
-    mongo // this will get you into the mongodb shell
-    > db = connect('127.0.0.1/construction')
-    > db.generalProjects.drop()
-    > load('insert_general_projects_script.js')
-    > load('insert_general_project_dates_script.js')
-    > load('insert_general_project_flags_script.js')
-    > db.generalProjects.createIndex( { location: "2dsphere" } )
+```shell
+mongo // this will get you into the mongodb shell
+> db = connect('127.0.0.1/construction')
+> db.generalProjects.drop()
+> load('insert_general_projects_script.js')
+> load('insert_general_project_dates_script.js')
+> load('insert_general_project_flags_script.js')
+> db.generalProjects.createIndex( { location: "2dsphere" } )
+```
 
 After each index creation, you should see something like this as confirmation:
 
+```javascript
     {
         "createdCollectionAutomatically" : false,
         "numIndexesBefore" : 1,
         "numIndexesAfter" : 2,
         "ok" : 1
     }
+```
 
 ## Testing The Insertion
 
 To test that there are the right insertions in each table, run the following
 commands, and you should see `8217` as the number:
 
-    db.generalProjects.count()
-    db.generalProjectDates.count()
-    db.generalProjectFlags.count()
+```shell
+db.generalProjects.count()
+db.generalProjectDates.count()
+db.generalProjectFlags.count()
+```
 
 ## Adding the AS400 Information
 
@@ -106,18 +122,20 @@ Then run the command `load('merge_script.js')`.
 
 This was really cool. It uses a format like this:
 
-    {
-    <location field>: {
-        $near: {
-        $geometry: {
-            type: "Point" ,
-            coordinates: [ <longitude> , <latitude> ]
-        },
-        $maxDistance: <distance in meters>,
-        $minDistance: <distance in meters>
-        }
+```javascript
+{
+<location field>: {
+   $near: {
+      $geometry: {
+         type: "Point" ,
+         coordinates: [ <longitude> , <latitude> ]
+      },
+      $maxDistance: <distance in meters>,
+      $minDistance: <distance in meters>
     }
-    }
+   }
+}
+```
 
 I wrote a query that finds all properties within 5,000 meters of Buffalo in `find_near.js`. Note that
 the find in this case didn't automatically print them out, so I had to append the `.forEach(printjson)`
@@ -133,15 +151,25 @@ There are values there, and none of the locations are null, so Viola, this worke
 Here is an example of distinct on the `ProjectType` column. Remember, like SSMS, you first have to
 connect using something like `db = connect('127.0.0.1/construction')`:
 
-    > db.generalProjects.distinct("ProjectType")
-    [ "Tenant", "Civil", null, "Shell", "Hotel", "Site Only" ]
-    > db.generalProjects.find({ ProjectType: 'Shell' }).count()
-    1068
-    > db.generalProjects.find({ ProjectType: 'Tenant' }).count()
-    6311
-    > db.generalProjects.find({ ProjectType: 'Civil' }).count()
-    645
-    > db.generalProjects.find({ ProjectType: 'Site Only' }).count()
-    2
-    > db.generalProjects.find({ ProjectType: null }).count()
-    166
+```shell
+> db.generalProjects.distinct("ProjectType")
+[ "Tenant", "Civil", null, "Shell", "Hotel", "Site Only" ]
+> db.generalProjects.find({ ProjectType: 'Shell' }).count()
+1068
+> db.generalProjects.find({ ProjectType: 'Tenant' }).count()
+6311
+> db.generalProjects.find({ ProjectType: 'Civil' }).count()
+645
+> db.generalProjects.find({ ProjectType: 'Site Only' }).count()
+2
+> db.generalProjects.find({ ProjectType: null }).count()
+166
+```
+
+# Viewing Things In An SSMS-like UI
+
+The MongoDB database comes with an application called Compass. To start it up,
+type in the command `mongodb-compass &` at the command line. It looks something
+like this for the `construction` database:
+
+![](compass.png)
