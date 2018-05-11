@@ -1,0 +1,15 @@
+{
+  "name": "constructiondb",
+  "version": "1.0.0",
+  "description": "This directory is a project that will take selected information from the ProjectInformationSQL2 database on SQL2014, and put it into MongoDB. Why? I want to see what I can make available via Google Maps. There is a Node.js driver for SQL Server available from Microsoft, I am starting there.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-jt400": "^1.5.7",
+    "tedious": "^2.3.1"
+  }
+}
