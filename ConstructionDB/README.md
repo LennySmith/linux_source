@@ -4,6 +4,9 @@ This directory is a project that will take selected information from the Project
 on SQL2014, and put it into MongoDB. Why? I want to see what I can make available via Google Maps. There
 is a Node.js driver for SQL Server available from Microsoft, I am starting there.
 
+There is a brief explanation in using some simple queries and MongoDB Compass at
+the end.
+
 # The Node.js SQL Server Driver
 
 The driver is available here:
